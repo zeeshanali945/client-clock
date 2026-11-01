@@ -8,6 +8,8 @@ What it does:
   1. Turns on core library desugaring (needed by flutter_local_notifications)
   2. Adds the notification permissions and receivers to AndroidManifest.xml
   3. Sets the app name shown on the phone to "Client Clock"
+  4. Stops Gradle from failing when a plugin (flutter_timezone) mixes Java 11
+     and Kotlin 1.8 targets. The mismatch is harmless at run time.
 """
 import os
 import re
@@ -128,7 +130,21 @@ def patch_manifest():
         print("already patched " + MANIFEST)
 
 
+def patch_gradle_properties():
+    path = os.path.join("android", "gradle.properties")
+    line = "kotlin.jvm.target.validation.mode=warning"
+    text = read(path) if os.path.exists(path) else ""
+    if "kotlin.jvm.target.validation.mode" in text:
+        print("already patched " + path)
+        return
+    if text and not text.endswith("\n"):
+        text += "\n"
+    write(path, text + line + "\n")
+    print("patched " + path)
+
+
 if __name__ == "__main__":
     patch_gradle()
     patch_manifest()
+    patch_gradle_properties()
     print("Android patch done.")
