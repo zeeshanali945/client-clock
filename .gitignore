@@ -1,0 +1,26 @@
+# Flutter and Dart
+.dart_tool/
+.packages
+.pub-cache/
+.pub/
+build/
+pubspec.lock
+.flutter-plugins
+.flutter-plugins-dependencies
+.metadata
+
+# Android and iOS generated or local files
+android/.gradle/
+android/local.properties
+android/key.properties
+*.jks
+*.keystore
+ios/Pods/
+ios/.symlinks/
+ios/Flutter/Generated.xcconfig
+
+# Editors and system
+.idea/
+.vscode/
+*.iml
+.DS_Store

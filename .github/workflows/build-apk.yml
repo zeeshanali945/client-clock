@@ -1,0 +1,74 @@
+name: Build Client Clock APK
+
+# Run it by hand: Actions tab > Build Client Clock APK > Run workflow.
+# Or push a version tag such as v1.0.0 to also publish the APK on the Releases page.
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Get the code
+        uses: actions/checkout@v4
+
+      - name: Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+
+      - name: Set up Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      # The repo holds only the app code. This creates the Android project
+      # files around it, then puts our own pubspec, lib and test folders back.
+      - name: Generate the Android project files
+        run: |
+          mkdir -p /tmp/keep
+          cp pubspec.yaml /tmp/keep/pubspec.yaml
+          cp -R lib /tmp/keep/lib
+          cp -R test /tmp/keep/test
+          flutter create --org com.zad --project-name client_clock --platforms=android .
+          cp /tmp/keep/pubspec.yaml pubspec.yaml
+          rm -rf lib test
+          cp -R /tmp/keep/lib lib
+          cp -R /tmp/keep/test test
+
+      - name: Apply the Android notification settings
+        run: python3 tool/patch_android.py
+
+      - name: Install packages
+        run: flutter pub get
+
+      # Shown in the log for information. A failing test does not stop the APK.
+      - name: Run the time tests
+        run: flutter test
+        continue-on-error: true
+
+      - name: Build the APK
+        run: flutter build apk --release
+
+      - name: Name the file
+        run: cp build/app/outputs/flutter-apk/app-release.apk client-clock.apk
+
+      - name: Keep the APK as a download on this run
+        uses: actions/upload-artifact@v4
+        with:
+          name: client-clock-apk
+          path: client-clock.apk
+
+      - name: Publish the APK on the Releases page (tags only)
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: client-clock.apk
